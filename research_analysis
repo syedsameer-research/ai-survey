@@ -1,0 +1,107 @@
+# Import necessary libraries
+import pandas as pd
+import numpy as np
+from scipy import stats
+import statsmodels.api as sm
+from statsmodels.formula.api import ols
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.preprocessing import LabelEncoder
+from statsmodels.stats.multicomp import pairwise_tukeyhsd
+from statsmodels.stats.anova import AnovaRM
+
+# Load dataset
+df = pd.read_csv('genAI_survey_sample_data_IT.csv')
+
+# 1. Descriptive Statistics
+def descriptive_statistics(df):
+    print("### Descriptive Statistics ###")
+    print(df.describe())
+    print(df.describe(include='object'))  # For categorical data
+    print("\n")
+
+# 2. T-test to compare means between two groups
+def t_test(df, column, group_column, group1, group2):
+    print(f"### T-Test for {group1} vs {group2} on {column} ###")
+    group1_data = df[df[group_column] == group1][column]
+    group2_data = df[df[group_column] == group2][column]
+    t_stat, p_value = stats.ttest_ind(group1_data, group2_data, equal_var=False)
+    print(f"T-statistic: {t_stat}, P-value: {p_value}\n")
+
+# 3. ANOVA for comparing multiple groups
+def anova_test(df, column, group_column):
+    print(f"### ANOVA Test for {column} across {group_column} ###")
+    model = ols(f'{column} ~ C({group_column})', data=df).fit()
+    anova_table = sm.stats.anova_lm(model, typ=2)
+    print(anova_table)
+    print("\n")
+
+# 4. Chi-Square Test
+def chi_square_test(df, col1, col2):
+    print(f"### Chi-Square Test between {col1} and {col2} ###")
+    contingency_table = pd.crosstab(df[col1], df[col2])
+    chi2, p, dof, expected = stats.chi2_contingency(contingency_table)
+    print(f"Chi-Square: {chi2}, P-value: {p}")
+    print("\n")
+
+# 5. Correlation Analysis
+def correlation_test(df, col1, col2):
+    print(f"### Correlation between {col1} and {col2} ###")
+    corr, p_value = stats.pearsonr(df[col1], df[col2])
+    print(f"Correlation Coefficient: {corr}, P-value: {p_value}\n")
+
+# 6. Regression Analysis
+def regression_analysis(df, dependent, independents):
+    print(f"### Regression Analysis of {dependent} on {independents} ###")
+    X = df[independents]
+    X = sm.add_constant(X)  # Adds a constant term to the regression
+    y = df[dependent]
+    model = sm.OLS(y, X).fit()
+    print(model.summary())
+    print("\n")
+
+# 7. Non-Parametric Tests (e.g., Mann-Whitney U Test)
+def mann_whitney_test(df, column, group_column, group1, group2):
+    print(f"### Mann-Whitney U Test for {group1} vs {group2} on {column} ###")
+    group1_data = df[df[group_column] == group1][column]
+    group2_data = df[df[group_column] == group2][column]
+    u_stat, p_value = stats.mannwhitneyu(group1_data, group2_data, alternative='two-sided')
+    print(f"U-statistic: {u_stat}, P-value: {p_value}\n")
+
+# 8. Post-hoc tests (Tukey's HSD)
+def tukey_posthoc_test(df, column, group_column):
+    print(f"### Tukey's HSD Test for {column} ###")
+    tukey = pairwise_tukeyhsd(endog=df[column], groups=df[group_column], alpha=0.05)
+    print(tukey)
+    print("\n")
+
+# Run all tests
+def run_all_tests(df):
+    # Example columns used in the survey: 'Perceived_Benefits', 'Familiarity_with_genAI', 'Role', 'Institution_Type'
+
+    # Descriptive Statistics
+    descriptive_statistics(df)
+
+    # T-test between two groups (Students vs Faculty) on perceived benefits of AI
+    t_test(df, 'Perceived_Benefits', 'Role', 'Student', 'Faculty')
+
+    # ANOVA to compare multiple groups (Students, Faculty, IT Implementers) on perceived AI benefits
+    anova_test(df, 'Perceived_Benefits', 'Role')
+
+    # Chi-Square Test between Role and AI Familiarity (Categorical data)
+    chi_square_test(df, 'Role', 'Familiarity_with_genAI')
+
+    # Correlation Analysis between AI familiarity and perceived AI readiness
+    correlation_test(df, 'Familiarity_with_genAI', 'Perceived_Readiness')
+
+    # Regression analysis on AI benefits predicted by familiarity and role
+    regression_analysis(df, 'Perceived_Benefits', ['Familiarity_with_genAI', 'Role'])
+
+    # Non-parametric Mann-Whitney U test for non-normal data comparison (Students vs Faculty on AI readiness)
+    mann_whitney_test(df, 'Perceived_Readiness', 'Role', 'Student', 'Faculty')
+
+    # Tukey's HSD post-hoc test for pairwise comparison after ANOVA
+    tukey_posthoc_test(df, 'Perceived_Benefits', 'Role')
+
+# Example of running all tests
+run_all_tests(df)
